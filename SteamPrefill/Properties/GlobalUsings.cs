@@ -19,7 +19,6 @@ global using SteamKit2;
 global using SteamKit2.Authentication;
 global using SteamKit2.CDN;
 global using SteamKit2.Internal;
-global using SteamPrefill.CliCommands.Benchmark;
 global using SteamPrefill.Handlers;
 global using SteamPrefill.Handlers.Steam;
 global using SteamPrefill.Models;

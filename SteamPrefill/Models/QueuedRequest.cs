@@ -1,30 +1,30 @@
 ﻿namespace SteamPrefill.Models
 {
-    [ProtoContract(SkipConstructor = true)]
     public struct QueuedRequest
     {
-        [ProtoMember(1)]
+        public readonly uint AppId;
         public readonly uint DepotId;
+        public readonly ulong ManifestId;
 
         /// <summary>
         /// The SHA-1 hash of the chunk's id.
         /// </summary>
-        [ProtoMember(2)]
         public string ChunkId;
 
         /// <summary>
         /// The content-length of the data to be requested.
         /// </summary>
-        [ProtoMember(3)]
         public readonly uint CompressedLength;
 
         public Exception LastFailureReason { get; set; }
 
-        public QueuedRequest(Manifest depotManifest, ChunkData chunk)
+        public QueuedRequest(uint appId, Manifest depotManifest, ChunkData chunk)
         {
             DepotId = depotManifest.DepotId;
             ChunkId = chunk.ChunkId;
             CompressedLength = chunk.CompressedLength;
+
+            ManifestId = depotManifest.Id;
         }
 
         public override string ToString()

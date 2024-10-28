@@ -60,13 +60,6 @@
                         {
                             _ansiConsole.LogMarkupError($"Manifest request timed out for depot {Cyan(depot.Name)} - {LightYellow(depot.DepotId)}.  Retrying...");
                         }
-                        else if (e is SteamKitWebRequestException && e.Message.Contains("508"))
-                        {
-                            _ansiConsole.LogMarkupError("   An infinite loop was detected while downloading manifests.\n" +
-                                                            "   This likely means that there is an issue with your network configuration.\n" +
-                                                            "   Please check your configuration, and retry again.\n");
-                            throw new InfiniteLoopException("Infinite loop detected while downloading manifests");
-                        }
                         else
                         {
                             // Default catch all message
@@ -95,7 +88,7 @@
         /// <param name="depot">The depot to download a manifest for</param>
         /// <returns>A manifest file</returns>
         /// <exception cref="ManifestException">Throws if no manifest was returned by Steam</exception>
-        private async Task<Manifest> GetSingleManifestAsync(DepotInfo depot)
+        public async Task<Manifest> GetSingleManifestAsync(DepotInfo depot)
         {
             if (ManifestIsCached(depot))
             {

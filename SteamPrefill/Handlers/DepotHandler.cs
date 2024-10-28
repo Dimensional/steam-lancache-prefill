@@ -56,7 +56,7 @@
         /// <summary>
         /// Filters depots based on the language/operating system/cpu architecture specified in the DownloadArguments
         /// </summary>
-        public async Task<List<DepotInfo>> FilterDepotsToDownloadAsync(DownloadArguments downloadArgs, List<DepotInfo> allDepots)
+        public async Task<List<DepotInfo>> FilterDepotsToDownloadAsync(List<DepotInfo> allDepots)
         {
             var filteredDepots = new List<DepotInfo>();
 
@@ -80,31 +80,6 @@
 
                 AppInfo containingApp = await _appInfoHandler.GetAppInfoAsync(depot.ContainingAppId);
                 if (containingApp.IsInvalidApp)
-                {
-                    continue;
-                }
-
-                // Checks to see if the depot supports any of the desired operating systems
-                var osIsSupported = downloadArgs.OperatingSystems.Any(e => depot.SupportedOperatingSystems.Contains(e));
-                if (depot.SupportedOperatingSystems.Any() && !osIsSupported)
-                {
-                    continue;
-                }
-
-                // Architecture
-                if (depot.Architecture != null && depot.Architecture != downloadArgs.Architecture)
-                {
-                    continue;
-                }
-
-                // Language
-                if (depot.Languages.Any() && !depot.Languages.Contains(downloadArgs.Language))
-                {
-                    continue;
-                }
-
-                // Low Violence
-                if (depot.LowViolence != null && depot.LowViolence.Value)
                 {
                     continue;
                 }
@@ -136,8 +111,9 @@
 
             // Queueing up chunks for each depot
             var chunkQueue = new List<QueuedRequest>();
-            foreach (var depotManifest in depotManifests)
+            foreach (var depot in depots)
             {
+                var depotManifest = await _manifestHandler.GetSingleManifestAsync(depot);
                 // A depot will contain multiple files, that are broken up into 1MB chunks
                 var dedupedChunks = depotManifest.Files
                                                  .SelectMany(e => e.Chunks)
@@ -147,7 +123,7 @@
 
                 foreach (ChunkData chunk in dedupedChunks)
                 {
-                    chunkQueue.Add(new QueuedRequest(depotManifest, chunk));
+                    chunkQueue.Add(new QueuedRequest(depot.ContainingAppId, depotManifest, chunk));
                 }
             }
             return chunkQueue;

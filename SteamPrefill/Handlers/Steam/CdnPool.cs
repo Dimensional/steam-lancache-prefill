@@ -20,15 +20,6 @@ namespace SteamPrefill.Handlers.Steam
             _steamSession = steamSession;
         }
 
-        /// <summary>
-        /// Constructor used by the benchmark run command in order to avoid logging into Steam to get available CDN servers.
-        /// Should not be used other than with the benchmark features.
-        /// </summary>
-        public CdnPool(IAnsiConsole ansiConsole, ConcurrentStack<Server> availableServers)
-        {
-            _ansiConsole = ansiConsole;
-            AvailableServerEndpoints = availableServers;
-        }
 
         /// <summary>
         /// Gets a list of available CDN servers from the Steam network.

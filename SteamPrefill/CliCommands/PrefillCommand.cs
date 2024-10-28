@@ -12,22 +12,10 @@ namespace SteamPrefill.CliCommands
         [CommandOption("recent", Description = "Prefill will include all games played in the last 2 weeks.", Converter = typeof(NullableBoolConverter))]
         public bool? PrefillRecentGames { get; init; }
 
-        [CommandOption("top", Description = "Prefills the most popular games by player count, over the last 2 weeks.  Default: 50")]
-        public int? PrefillPopularGames
-        {
-            get => _prefillPopularGames;
-            // Need to use a setter in order to set a default value, so that the default will only be used when the option flag is specified
-            set => _prefillPopularGames = value ?? 50;
-        }
-
         [CommandOption("force", 'f',
             Description = "Forces the prefill to always run, overrides the default behavior of only prefilling if a newer version is available.",
             Converter = typeof(NullableBoolConverter))]
         public bool? Force { get; init; }
-
-        [CommandOption("os", Description = "Specifies which operating system(s) games should be downloaded for.  Can be windows/linux/macos",
-            Converter = typeof(OperatingSystemConverter), Validators = new[] { typeof(OperatingSystemValidator) })]
-        public IReadOnlyList<OperatingSystem> OperatingSystems { get; init; } = new List<OperatingSystem> { OperatingSystem.Windows };
 
         [CommandOption("verbose", Description = "Produces more detailed log output. Will output logs for games are already up to date.", Converter = typeof(NullableBoolConverter))]
         public bool? Verbose
@@ -48,7 +36,6 @@ namespace SteamPrefill.CliCommands
         public bool? NoAnsiEscapeSequences { get; init; }
 
         private IAnsiConsole _ansiConsole;
-        private int? _prefillPopularGames;
 
         public async ValueTask ExecuteAsync(IConsole console)
         {
@@ -61,20 +48,16 @@ namespace SteamPrefill.CliCommands
             var downloadArgs = new DownloadArguments
             {
                 Force = Force ?? default(bool),
-                TransferSpeedUnit = TransferSpeedUnit,
-                OperatingSystems = OperatingSystems.ToList()
             };
 
             using var steamManager = new SteamManager(_ansiConsole, downloadArgs);
             ValidateUserHasSelectedApps(steamManager);
-            ValidatePopularGameCount();
 
             try
             {
                 await steamManager.InitializeAsync();
                 await steamManager.DownloadMultipleAppsAsync(DownloadAllOwnedGames ?? default(bool),
-                                                             PrefillRecentGames ?? default(bool),
-                                                             PrefillPopularGames);
+                                                             PrefillRecentGames ?? default(bool));
             }
             finally
             {
@@ -87,7 +70,7 @@ namespace SteamPrefill.CliCommands
         {
             var userSelectedApps = steamManager.LoadPreviouslySelectedApps();
 
-            if ((DownloadAllOwnedGames ?? default(bool)) || (PrefillRecentGames ?? default(bool)) || PrefillPopularGames != null || userSelectedApps.Any())
+            if ((DownloadAllOwnedGames ?? default(bool)) || (PrefillRecentGames ?? default(bool)) || userSelectedApps.Any())
             {
                 return;
             }
@@ -99,13 +82,5 @@ namespace SteamPrefill.CliCommands
             throw new CommandException(".", 1, true);
         }
 
-        private void ValidatePopularGameCount()
-        {
-            if (PrefillPopularGames != null && PrefillPopularGames < 1 || PrefillPopularGames > 100)
-            {
-                _ansiConsole.Markup(Red($"Value for {LightYellow("--top")} must be in the range 1-100"));
-                throw new CommandException(".", 1, true);
-            }
-        }
     }
 }
