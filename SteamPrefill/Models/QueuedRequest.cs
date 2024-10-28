@@ -20,12 +20,15 @@
 
         public QueuedRequest(uint appId, Manifest depotManifest, ChunkData chunk)
         {
+            AppId = appId;
             DepotId = depotManifest.DepotId;
             ChunkId = chunk.ChunkId;
             CompressedLength = chunk.CompressedLength;
 
             ManifestId = depotManifest.Id;
         }
+
+        public string OutputDir => Path.Combine(AppConfig.TempDir, "Depots", DepotId.ToString(), $"{ChunkId}.bin");
 
         public override string ToString()
         {

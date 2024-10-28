@@ -1,4 +1,6 @@
-﻿namespace SteamPrefill.Handlers
+﻿using static SteamKit2.GC.Dota.Internal.CMsgSDOAssert;
+
+namespace SteamPrefill.Handlers
 {
     public sealed class DepotHandler
     {
@@ -107,13 +109,20 @@
         /// <returns></returns>
         public async Task<List<QueuedRequest>> BuildChunkDownloadQueueAsync(List<DepotInfo> depots)
         {
-            var depotManifests = await _manifestHandler.GetAllManifestsAsync(depots);
-
             // Queueing up chunks for each depot
             var chunkQueue = new List<QueuedRequest>();
             foreach (var depot in depots)
             {
                 var depotManifest = await _manifestHandler.GetSingleManifestAsync(depot);
+
+                // Creating the appropriate output dir
+                var outputDir = Path.Combine(AppConfig.TempDir, "Depots", depot.DepotId.ToString(), depotManifest.Id.ToString());
+                if (!Directory.Exists(outputDir))
+                {
+                    Directory.CreateDirectory(outputDir);
+                }
+
+
                 // A depot will contain multiple files, that are broken up into 1MB chunks
                 var dedupedChunks = depotManifest.Files
                                                  .SelectMany(e => e.Chunks)

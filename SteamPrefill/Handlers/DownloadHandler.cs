@@ -35,7 +35,7 @@
         /// false will be returned
         /// </summary>
         /// <returns>True if all downloads succeeded.  False if any downloads failed 3 times in a row.</returns>
-        public async Task<bool> DownloadQueuedChunksAsync(List<QueuedRequest> queuedRequests, DownloadArguments downloadArgs)
+        public async Task<bool> DownloadQueuedChunksAsync(List<QueuedRequest> queuedRequests)
         {
             await InitializeAsync();
 
@@ -90,32 +90,34 @@
             var cdnServer = _cdnPool.TakeConnection();
             await Parallel.ForEachAsync(requestsToDownload, new ParallelOptions { MaxDegreeOfParallelism = 20 }, body: async (request, _) =>
             {
-                try
+                if (!File.Exists(request.OutputDir))
                 {
-                    var url = $"http://{_lancacheAddress}/depot/{request.DepotId}/chunk/{request.ChunkId}";
-                    if (forceRecache)
+                    try
                     {
-                        url += "?nocache=1";
+                        var url = $"http://{_lancacheAddress}/depot/{request.DepotId}/chunk/{request.ChunkId}";
+                        if (forceRecache)
+                        {
+                            url += "?nocache=1";
+                        }
+                        using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+                        requestMessage.Headers.Host = cdnServer.Host;
+
+                        using var cts = new CancellationTokenSource();
+                        using var response = await _client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                        response.EnsureSuccessStatusCode();
+
+
+                        var responseBytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
+                        await File.WriteAllBytesAsync(request.OutputDir, responseBytes);
+
                     }
-                    using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
-                    requestMessage.Headers.Host = cdnServer.Host;
-
-                    using var cts = new CancellationTokenSource();
-                    using var response = await _client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-                    using Stream responseStream = await response.Content.ReadAsStreamAsync(cts.Token);
-                    response.EnsureSuccessStatusCode();
-
-                    // Don't save the data anywhere, so we don't have to waste time writing it to disk.
-                    var buffer = new byte[4096];
-                    while (await responseStream.ReadAsync(buffer, cts.Token) != 0)
+                    catch (Exception e)
                     {
+                        request.LastFailureReason = e;
+                        failedRequests.Add(request);
                     }
                 }
-                catch (Exception e)
-                {
-                    request.LastFailureReason = e;
-                    failedRequests.Add(request);
-                }
+
                 progressTask.Increment(request.CompressedLength);
             });
 

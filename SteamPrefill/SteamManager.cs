@@ -154,7 +154,7 @@
                 return;
             }
 
-            var downloadSuccessful = await _downloadHandler.DownloadQueuedChunksAsync(chunkDownloadQueue, _downloadArgs);
+            var downloadSuccessful = await _downloadHandler.DownloadQueuedChunksAsync(chunkDownloadQueue);
             if (downloadSuccessful)
             {
                 _depotHandler.MarkDownloadAsSuccessful(filteredDepots);
