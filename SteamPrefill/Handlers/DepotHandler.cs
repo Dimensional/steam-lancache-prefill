@@ -116,7 +116,7 @@ namespace SteamPrefill.Handlers
                 var depotManifest = await _manifestHandler.GetSingleManifestAsync(depot);
 
                 // Creating the appropriate output dir
-                var outputDir = Path.Combine(AppConfig.TempDir, "Depots", depot.DepotId.ToString(), depotManifest.Id.ToString());
+                var outputDir = Path.Combine(AppConfig.TempDir, "Depots", depot.DepotId.ToString());
                 if (!Directory.Exists(outputDir))
                 {
                     Directory.CreateDirectory(outputDir);

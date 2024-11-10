@@ -28,7 +28,8 @@
             ManifestId = depotManifest.Id;
         }
 
-        public string OutputDir => Path.Combine(AppConfig.TempDir, "Depots", DepotId.ToString(), $"{ChunkId}.bin");
+        public string ManifestDir => Path.Combine(AppConfig.TempDir, "Depots", DepotId.ToString(), $"{ManifestId}.zip");
+        public string OutputDir => Path.Combine(AppConfig.TempDir, "Depots", DepotId.ToString(), ChunkId);
 
         public override string ToString()
         {

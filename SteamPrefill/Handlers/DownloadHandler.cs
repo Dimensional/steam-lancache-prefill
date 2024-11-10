@@ -133,6 +133,59 @@
             return failedRequests;
         }
 
+        public async Task<ConcurrentBag<QueuedRequest>> AttemptManifestDownloadAsync(ProgressContext ctx, string taskTitle, List<QueuedRequest> requestsToDownload, bool forceRecache = false)
+        {
+            double requestTotalSize = requestsToDownload.Sum(e => e.CompressedLength);
+            var progressTask = ctx.AddTask(taskTitle, new ProgressTaskSettings { MaxValue = requestTotalSize });
+
+            var failedRequests = new ConcurrentBag<QueuedRequest>();
+
+            var cdnServer = _cdnPool.TakeConnection();
+            await Parallel.ForEachAsync(requestsToDownload, new ParallelOptions { MaxDegreeOfParallelism = 20 }, body: async (request, _) =>
+            {
+                if (!File.Exists(request.ManifestDir))
+                {
+                    try
+                    {
+                        var url = $"http://{_lancacheAddress}/depot/{request.DepotId}/chunk/{request.ManifestId}/5/";
+                        if (forceRecache)
+                        {
+                            url += "?nocache=1";
+                        }
+                        using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+                        requestMessage.Headers.Host = cdnServer.Host;
+
+                        using var cts = new CancellationTokenSource();
+                        using var response = await _client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                        response.EnsureSuccessStatusCode();
+
+
+                        var responseBytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
+                        await File.WriteAllBytesAsync(request.ManifestDir, responseBytes);
+
+                    }
+                    catch (Exception e)
+                    {
+                        request.LastFailureReason = e;
+                        failedRequests.Add(request);
+                    }
+                }
+
+                progressTask.Increment(request.CompressedLength);
+            });
+
+            //TODO In the scenario where a user still had all requests fail, potentially display a warning that there is an underlying issue
+            // Only return the connections for reuse if there were no errors
+            if (failedRequests.IsEmpty)
+            {
+                _cdnPool.ReturnConnection(cdnServer);
+            }
+
+            // Making sure the progress bar is always set to its max value, in-case some unexpected error leaves the progress bar showing as unfinished
+            progressTask.Increment(progressTask.MaxValue);
+            return failedRequests;
+        }
+
         public void Dispose()
         {
             _client?.Dispose();

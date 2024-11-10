@@ -100,6 +100,7 @@
             ManifestRequestCode manifestRequestCode = await GetManifestRequestCodeAsync(depot);
 
             Server server = _cdnPool.TakeConnection();
+            var buffer = await _downloadHandler.AttemptManifestDownloadAsync();
             DepotManifest manifest = await _steam3Session.CdnClient.DownloadManifestAsync(depot.DepotId, depot.ManifestId.Value, manifestRequestCode.Code, server);
             if (manifest == null)
             {
